@@ -1,0 +1,242 @@
+[
+    {
+        "id": "52453f6bcaa917e7",
+        "type": "tab",
+        "label": "Fluxo 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "fd16fbaf07663b09",
+        "type": "mqtt-broker",
+        "name": "Broker",
+        "broker": "mosquitto",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "7b2fd18a3ac2a9c4",
+        "type": "mongodb4-client",
+        "name": "",
+        "protocol": "mongodb",
+        "hostname": "mongo",
+        "port": "27017",
+        "dbName": "iot-prova",
+        "appName": "",
+        "authSource": "",
+        "authMechanism": "DEFAULT",
+        "tls": false,
+        "tlsCAFile": "",
+        "tlsCertificateKeyFile": "",
+        "tlsInsecure": false,
+        "connectTimeoutMS": "30000",
+        "socketTimeoutMS": "0",
+        "minPoolSize": "0",
+        "maxPoolSize": "100",
+        "maxIdleTimeMS": "0",
+        "uri": "",
+        "advanced": "{}",
+        "uriTabActive": "tab-uri-simple"
+    },
+    {
+        "id": "e94e902dbab8f1b2",
+        "type": "mongodb4",
+        "z": "52453f6bcaa917e7",
+        "clientNode": "7b2fd18a3ac2a9c4",
+        "mode": "collection",
+        "collection": "",
+        "operation": "",
+        "output": "toArray",
+        "maxTimeMS": "0",
+        "handleDocId": false,
+        "name": "Device",
+        "x": 790,
+        "y": 220,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "3219638992e4d067",
+        "type": "mqtt in",
+        "z": "52453f6bcaa917e7",
+        "name": "Device Info",
+        "topic": "device/+/info",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "fd16fbaf07663b09",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 180,
+        "y": 220,
+        "wires": [
+            [
+                "2dac77cdbbd3c749"
+            ]
+        ]
+    },
+    {
+        "id": "1bc21023af77cda5",
+        "type": "mqtt in",
+        "z": "52453f6bcaa917e7",
+        "name": "Device status",
+        "topic": "device/+/status/temperatura",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "fd16fbaf07663b09",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 190,
+        "y": 340,
+        "wires": [
+            [
+                "c71de1fe687d8e5f"
+            ]
+        ]
+    },
+    {
+        "id": "2dac77cdbbd3c749",
+        "type": "uuid",
+        "z": "52453f6bcaa917e7",
+        "uuidVersion": "v4",
+        "namespaceType": "",
+        "namespace": "",
+        "namespaceCustom": "",
+        "name": "",
+        "field": "payload._id",
+        "fieldType": "msg",
+        "x": 330,
+        "y": 220,
+        "wires": [
+            [
+                "f16ec6206a8e3d0b"
+            ]
+        ]
+    },
+    {
+        "id": "c71de1fe687d8e5f",
+        "type": "uuid",
+        "z": "52453f6bcaa917e7",
+        "uuidVersion": "v4",
+        "namespaceType": "",
+        "namespace": "",
+        "namespaceCustom": "",
+        "name": "",
+        "field": "payload._id",
+        "fieldType": "msg",
+        "x": 330,
+        "y": 340,
+        "wires": [
+            [
+                "da2ef56b9270b930"
+            ]
+        ]
+    },
+    {
+        "id": "f16ec6206a8e3d0b",
+        "type": "function",
+        "z": "52453f6bcaa917e7",
+        "name": "Device",
+        "func": "const deviceId = msg.payload.device_id;\nif (!deviceId) return null;\n\nmsg.collection = \"devices\";\nmsg.operation = \"updateOne\";\n\nconst device = {\n     $set:{\n     device_id: deviceId,\n     model: msg.payload.model || null,\n          \n     }\n}\n\n\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 530,
+        "y": 220,
+        "wires": [
+            [
+                "e94e902dbab8f1b2"
+            ]
+        ]
+    },
+    {
+        "id": "da2ef56b9270b930",
+        "type": "function",
+        "z": "52453f6bcaa917e7",
+        "name": "Device temp",
+        "func": "\nconst device_id = (msg.topic || '').split(\"/\")[1];\nif(!device_id) return null;\n\nconst obj = {\n    _id: msg.payload._id,\n    device_id,\n    sensor: msg.payload.sensor || 'unknown',\n    temp: msg.payload.temp|| null,\n    created_at: new Date(msg.payload.ts || Date.now()),\n}\n\nconst reading = {   \n    collection: 'readings',\n    operation: 'insertOne',\n    payload: obj\n}\n\nconst devices = {\n    collection: 'devices',\n    operation: 'updateOne',\n    payload: [\n        { device_id },\n        { \n            $set: { 'status.last_seen': new Date(), updated_at: new Date() },\n            $setOnInsert: { created_at: new Date(), device_id, _id: msg.payload._id }\n        },\n        { upsert: true }\n    ]\n}\n\n\n\nreturn [devices, reading]",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 530,
+        "y": 340,
+        "wires": [
+            [
+                "e94e902dbab8f1b2"
+            ],
+            [
+                "eb699fb8ba998ffc",
+                "e188fa65dbe3a33f"
+            ]
+        ]
+    },
+    {
+        "id": "eb699fb8ba998ffc",
+        "type": "debug",
+        "z": "52453f6bcaa917e7",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 740,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "e188fa65dbe3a33f",
+        "type": "mongodb4",
+        "z": "52453f6bcaa917e7",
+        "clientNode": "7b2fd18a3ac2a9c4",
+        "mode": "collection",
+        "collection": "",
+        "operation": "",
+        "output": "toArray",
+        "maxTimeMS": "0",
+        "handleDocId": false,
+        "name": "Device status",
+        "x": 800,
+        "y": 340,
+        "wires": [
+            []
+        ]
+    }
+]
